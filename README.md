@@ -4,7 +4,7 @@
 
 > **From "Revenue changed" → "Why did it change?"**
 
-[🚀 Live Demo](https://ai-revenue-detective-pdkjd9zngwu5pxhjh7eryk.streamlit.app/) • [📂 GitHub Repository](https://github.com/nilofersyed/AI-Revenue-Detective)
+[🚀 Live Demo](https://ai-revenue-detective-pdkjd9znqwu5pxhjh7eryk.streamlit.app/) • [📂 GitHub Repository](https://github.com/nilofersyed/AI-Revenue-Detective)
 
 ---
 
