@@ -2,17 +2,247 @@ import os
 import pickle
 import pandas as pd
 import streamlit as st
+import plotly.express as px
+import plotly.graph_objects as go
 from google import genai
 
 
 # ============================================================
-# PAGE CONFIGURATION
+# PAGE CONFIG
 # ============================================================
 
 st.set_page_config(
     page_title="AI Revenue Detective",
     page_icon="🔎",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
+
+
+# ============================================================
+# CUSTOM CSS
+# ============================================================
+
+st.markdown(
+    """
+    <style>
+
+    /* ---------- GLOBAL ---------- */
+
+    .stApp {
+        background-color: #f7f8fc;
+    }
+
+    .main .block-container {
+        max-width: 1400px;
+        padding-top: 2rem;
+        padding-bottom: 3rem;
+    }
+
+
+    /* ---------- HEADER ---------- */
+
+    .hero {
+        background: linear-gradient(
+            135deg,
+            #ffffff 0%,
+            #f1f4ff 100%
+        );
+
+        border: 1px solid #e5e7eb;
+        border-radius: 20px;
+
+        padding: 30px 35px;
+        margin-bottom: 25px;
+
+        box-shadow: 0 4px 18px rgba(0,0,0,0.04);
+    }
+
+    .hero-title {
+        font-size: 38px;
+        font-weight: 800;
+        color: #171b2e;
+        margin-bottom: 5px;
+    }
+
+    .hero-subtitle {
+        font-size: 16px;
+        color: #6b7280;
+        margin-bottom: 15px;
+    }
+
+    .hero-question {
+        display: inline-block;
+
+        background: #eef2ff;
+        color: #4338ca;
+
+        padding: 9px 15px;
+        border-radius: 10px;
+
+        font-weight: 700;
+        font-size: 14px;
+    }
+
+
+    /* ---------- STATUS ---------- */
+
+    .status {
+        float: right;
+
+        background: #ecfdf5;
+        color: #047857;
+
+        padding: 7px 13px;
+        border-radius: 20px;
+
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+
+    /* ---------- KPI CARDS ---------- */
+
+    .kpi-card {
+        background: #ffffff;
+
+        border: 1px solid #e5e7eb;
+        border-radius: 18px;
+
+        padding: 22px 24px;
+
+        min-height: 135px;
+
+        box-shadow: 0 3px 15px rgba(0,0,0,0.035);
+    }
+
+    .kpi-label {
+        color: #6b7280;
+        font-size: 13px;
+        font-weight: 600;
+
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .kpi-value {
+        color: #171b2e;
+        font-size: 30px;
+        font-weight: 800;
+
+        margin-top: 8px;
+    }
+
+    .kpi-description {
+        color: #9ca3af;
+        font-size: 12px;
+        margin-top: 5px;
+    }
+
+
+    /* ---------- SECTION HEADERS ---------- */
+
+    .section-title {
+        font-size: 23px;
+        font-weight: 750;
+        color: #171b2e;
+
+        margin-top: 30px;
+        margin-bottom: 12px;
+    }
+
+    .section-subtitle {
+        color: #6b7280;
+        font-size: 14px;
+        margin-bottom: 18px;
+    }
+
+
+    /* ---------- INVESTIGATION CARD ---------- */
+
+    .investigation-card {
+        background: #ffffff;
+
+        border: 1px solid #e5e7eb;
+        border-radius: 18px;
+
+        padding: 25px;
+
+        box-shadow: 0 3px 15px rgba(0,0,0,0.035);
+    }
+
+
+    /* ---------- AI CARD ---------- */
+
+    .ai-header {
+        background: linear-gradient(
+            135deg,
+            #eef2ff,
+            #f5f3ff
+        );
+
+        border: 1px solid #ddd6fe;
+        border-radius: 16px;
+
+        padding: 20px 24px;
+
+        margin-top: 25px;
+        margin-bottom: 15px;
+    }
+
+    .ai-title {
+        color: #3730a3;
+        font-size: 20px;
+        font-weight: 750;
+    }
+
+    .ai-subtitle {
+        color: #6b7280;
+        font-size: 13px;
+        margin-top: 4px;
+    }
+
+
+    /* ---------- DRIVER CARDS ---------- */
+
+    .driver-card {
+        background: #ffffff;
+
+        border: 1px solid #e5e7eb;
+        border-radius: 14px;
+
+        padding: 15px 18px;
+
+        margin-bottom: 10px;
+    }
+
+    .driver-name {
+        font-weight: 700;
+        color: #25283a;
+    }
+
+    .driver-value {
+        color: #dc2626;
+        font-weight: 700;
+        float: right;
+    }
+
+
+    /* ---------- FOOTER ---------- */
+
+    .footer {
+        text-align: center;
+
+        color: #9ca3af;
+
+        font-size: 12px;
+
+        padding-top: 30px;
+    }
+
+    </style>
+    """,
+    unsafe_allow_html=True
 )
 
 
@@ -22,133 +252,235 @@ st.set_page_config(
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-DATA_PATH = os.path.join(BASE_DIR, "revenue_data.pkl")
+DATA_PATH = os.path.join(
+    BASE_DIR,
+    "revenue_data.pkl"
+)
 
 with open(DATA_PATH, "rb") as f:
     data = pickle.load(f)
 
-monthly_revenue = data["monthly_revenue"]
-items_products = data["items_products"]
+monthly_revenue = data["monthly_revenue"].copy()
+items_products = data["items_products"].copy()
 
 
 # ============================================================
-# PREPARE MONTHLY REVENUE DATA
+# PREPARE DATA
 # ============================================================
 
-monthly_revenue = monthly_revenue.copy()
+monthly_revenue["month"] = pd.to_datetime(
+    monthly_revenue["month"]
+)
 
-# Make sure month is datetime
-if "month" in monthly_revenue.columns:
-    monthly_revenue["month"] = pd.to_datetime(
-        monthly_revenue["month"]
+monthly_revenue = (
+    monthly_revenue
+    .sort_values("month")
+    .reset_index(drop=True)
+)
+
+
+# ============================================================
+# REMOVE INCOMPLETE FINAL MONTH
+# ============================================================
+
+if len(monthly_revenue) > 1:
+
+    complete_monthly_revenue = (
+        monthly_revenue.iloc[:-1]
+        .copy()
     )
-
-monthly_revenue = monthly_revenue.sort_values("month").reset_index(drop=True)
-
-
-# ============================================================
-# FIX: USE LATEST COMPLETE MONTH FOR KPI
-# ============================================================
-
-# The final month in the Olist dataset is incomplete.
-# Therefore, we exclude the last month from the executive KPIs.
-
-if len(monthly_revenue) >= 2:
-
-    complete_monthly_revenue = monthly_revenue.iloc[:-1].copy()
 
 else:
 
-    complete_monthly_revenue = monthly_revenue.copy()
+    complete_monthly_revenue = (
+        monthly_revenue.copy()
+    )
 
 
-# Latest complete month
 latest_row = complete_monthly_revenue.iloc[-1]
 
-latest_revenue = latest_row["revenue"]
+latest_revenue = float(
+    latest_row["revenue"]
+)
 
-latest_monthly_change = latest_row.get(
+latest_change = latest_row.get(
     "revenue_change_pct",
     None
 )
 
 
+latest_month = latest_row["month"]
+
+
 # ============================================================
-# GEMINI CONFIGURATION
+# GEMINI API
 # ============================================================
 
-api_key = os.environ.get("GEMINI_API_KEY")
+api_key = None
+
+# Streamlit Cloud Secrets
+try:
+
+    if "GEMINI_API_KEY" in st.secrets:
+        api_key = st.secrets["GEMINI_API_KEY"]
+
+except Exception:
+    pass
+
+
+# Environment variable fallback
+if not api_key:
+
+    api_key = os.environ.get(
+        "GEMINI_API_KEY"
+    )
+
 
 if not api_key:
 
     st.error(
-        "Gemini API key not configured. "
-        "Please add GEMINI_API_KEY to Streamlit Secrets."
+        "Gemini API key is not configured."
     )
 
     st.stop()
 
 
-client = genai.Client(api_key=api_key)
-
-
-# ============================================================
-# PAGE HEADER
-# ============================================================
-
-st.title("🔎 AI Revenue Detective")
-
-st.caption(
-    "Automated Revenue Root-Cause Analysis & Business Intelligence System"
+client = genai.Client(
+    api_key=api_key
 )
+
+
+# ============================================================
+# HEADER
+# ============================================================
 
 st.markdown(
     """
-    > **Revenue changed. Why?**
-    
-    Analyze revenue trends, identify the major contributors to change,
-    and generate an evidence-based business explanation using Generative AI.
+    <div class="hero">
+
+        <div class="status">
+            ● AI ANALYTICS
+        </div>
+
+        <div class="hero-title">
+            🔎 AI Revenue Detective
+        </div>
+
+        <div class="hero-subtitle">
+            Revenue Intelligence & Root-Cause Analysis
+        </div>
+
+        <div class="hero-question">
+            Revenue changed. Why?
+        </div>
+
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+
+st.markdown(
     """
+    <div style="
+        color:#6b7280;
+        font-size:15px;
+        margin-bottom:20px;
+    ">
+        Investigate revenue changes, identify major contributing
+        factors, and generate evidence-based business explanations
+        using Generative AI.
+    </div>
+    """,
+    unsafe_allow_html=True
 )
 
 
 # ============================================================
-# EXECUTIVE KPI SECTION
+# KPI SECTION
 # ============================================================
 
-col1, col2, col3 = st.columns(3)
+kpi1, kpi2, kpi3 = st.columns(3)
 
 
-with col1:
+# Revenue
+with kpi1:
 
-    st.metric(
-        "Latest Complete Revenue",
-        f"₹{latest_revenue:,.0f}"
+    st.markdown(
+        f"""
+        <div class="kpi-card">
+
+            <div class="kpi-label">
+                💰 Latest Complete Revenue
+            </div>
+
+            <div class="kpi-value">
+                ₹{latest_revenue:,.0f}
+            </div>
+
+            <div class="kpi-description">
+                {latest_month.strftime("%B %Y")}
+            </div>
+
+        </div>
+        """,
+        unsafe_allow_html=True
     )
 
 
-with col2:
+# Change
+with kpi2:
 
-    if pd.notna(latest_monthly_change):
+    change_text = (
+        f"{float(latest_change):.2f}%"
+        if pd.notna(latest_change)
+        else "N/A"
+    )
 
-        st.metric(
-            "Monthly Change",
-            f"{latest_monthly_change:.2f}%"
-        )
+    st.markdown(
+        f"""
+        <div class="kpi-card">
 
-    else:
+            <div class="kpi-label">
+                📉 Month-over-Month Change
+            </div>
 
-        st.metric(
-            "Monthly Change",
-            "N/A"
-        )
+            <div class="kpi-value">
+                {change_text}
+            </div>
+
+            <div class="kpi-description">
+                Compared with previous month
+            </div>
+
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 
-with col3:
+# Months
+with kpi3:
 
-    st.metric(
-        "Months Analyzed",
-        len(complete_monthly_revenue)
+    st.markdown(
+        f"""
+        <div class="kpi-card">
+
+            <div class="kpi-label">
+                📅 Months Analyzed
+            </div>
+
+            <div class="kpi-value">
+                {len(complete_monthly_revenue)}
+            </div>
+
+            <div class="kpi-description">
+                Complete monthly periods
+            </div>
+
+        </div>
+        """,
+        unsafe_allow_html=True
     )
 
 
@@ -156,137 +488,260 @@ with col3:
 # REVENUE TREND
 # ============================================================
 
-st.subheader("📈 Revenue Trend")
+st.markdown(
+    """
+    <div class="section-title">
+        📈 Revenue Performance
+    </div>
 
-chart_data = complete_monthly_revenue.copy()
+    <div class="section-subtitle">
+        Monthly revenue trend across complete reporting periods
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
-chart_data["Month"] = chart_data["month"].dt.strftime("%b %Y")
 
-chart_data = chart_data.set_index("Month")
+chart_df = complete_monthly_revenue.copy()
 
-st.line_chart(
-    chart_data["revenue"]
+chart_df["Month"] = (
+    chart_df["month"]
+    .dt.strftime("%b %Y")
+)
+
+
+fig = go.Figure()
+
+
+fig.add_trace(
+    go.Scatter(
+        x=chart_df["month"],
+        y=chart_df["revenue"],
+        mode="lines+markers",
+        line=dict(
+            width=3
+        ),
+        marker=dict(
+            size=7
+        ),
+        hovertemplate=
+            "<b>%{x|%B %Y}</b><br>"
+            "Revenue: ₹%{y:,.0f}"
+            "<extra></extra>"
+    )
+)
+
+
+fig.update_layout(
+
+    height=400,
+
+    margin=dict(
+        l=10,
+        r=10,
+        t=15,
+        b=10
+    ),
+
+    paper_bgcolor="rgba(0,0,0,0)",
+
+    plot_bgcolor="rgba(0,0,0,0)",
+
+    xaxis=dict(
+        title=None,
+        showgrid=False
+    ),
+
+    yaxis=dict(
+        title="Revenue",
+        tickprefix="₹",
+        separatethousands=True,
+        gridcolor="#e5e7eb"
+    ),
+
+    hovermode="x unified",
+
+    font=dict(
+        family="Arial"
+    )
+)
+
+
+st.plotly_chart(
+    fig,
+    use_container_width=True
 )
 
 
 # ============================================================
-# MONTH SELECTION
+# INVESTIGATION
 # ============================================================
 
-st.subheader("🔎 Investigate Revenue")
+st.markdown(
+    """
+    <div class="section-title">
+        🔎 Investigate a Revenue Change
+    </div>
 
-
-# Convert available months into readable labels
-month_options = complete_monthly_revenue["month"].tolist()
-
-month_labels = [
-    month.strftime("%B %Y")
-    for month in month_options
-]
-
-
-selected_label = st.selectbox(
-    "Select a month to investigate:",
-    month_labels
+    <div class="section-subtitle">
+        Select a month to identify the largest contributors
+        to its revenue change.
+    </div>
+    """,
+    unsafe_allow_html=True
 )
 
 
-selected_month = pd.to_datetime(
-    selected_label
-)
+investigation_container = st.container()
+
+
+with investigation_container:
+
+    select_col, button_col = st.columns(
+        [3, 1]
+    )
+
+
+    month_options = (
+        complete_monthly_revenue["month"]
+        .tolist()
+    )
+
+
+    month_labels = [
+        month.strftime("%B %Y")
+        for month in month_options
+    ]
+
+
+    with select_col:
+
+        selected_label = st.selectbox(
+            "Select reporting month",
+            month_labels,
+            index=len(month_labels) - 1
+        )
+
+
+    selected_month = pd.to_datetime(
+        selected_label
+    )
+
+
+    with button_col:
+
+        st.write("")
+
+        investigate = st.button(
+            "🔎 Investigate",
+            type="primary",
+            use_container_width=True
+        )
 
 
 # ============================================================
 # INVESTIGATION FUNCTION
 # ============================================================
 
-def investigate_revenue(selected_month):
+def investigate_revenue(
+    selected_month
+):
 
-    selected_month = pd.to_datetime(selected_month)
-
-    # --------------------------------------------------------
-    # Find current month
-    # --------------------------------------------------------
-
-    current_rows = monthly_revenue[
-        monthly_revenue["month"] == selected_month
-    ]
-
-    if current_rows.empty:
-
-        return None
-
-    current_revenue = current_rows.iloc[0]["revenue"]
-
-
-    # --------------------------------------------------------
-    # Find previous month
-    # --------------------------------------------------------
-
-    previous_month = (
-        selected_month - pd.DateOffset(months=1)
+    selected_month = pd.to_datetime(
+        selected_month
     )
 
+
+    current_rows = monthly_revenue[
+        monthly_revenue["month"]
+        == selected_month
+    ]
+
+
+    if current_rows.empty:
+        return None
+
+
+    current_revenue = float(
+        current_rows.iloc[0]["revenue"]
+    )
+
+
+    previous_month = (
+        selected_month
+        - pd.DateOffset(months=1)
+    )
+
+
     previous_rows = monthly_revenue[
-        monthly_revenue["month"] == previous_month
+        monthly_revenue["month"]
+        == previous_month
     ]
 
 
     if previous_rows.empty:
-
         return None
 
-    previous_revenue = previous_rows.iloc[0]["revenue"]
 
-
-    # --------------------------------------------------------
-    # Calculate revenue change
-    # --------------------------------------------------------
-
-    revenue_change = (
-        current_revenue - previous_revenue
+    previous_revenue = float(
+        previous_rows.iloc[0]["revenue"]
     )
 
+
+    revenue_change = (
+        current_revenue
+        - previous_revenue
+    )
+
+
     revenue_change_pct = (
-        revenue_change / previous_revenue
+        revenue_change
+        / previous_revenue
     ) * 100
 
 
     # --------------------------------------------------------
-    # Category analysis
+    # PREPARE ITEMS DATA
     # --------------------------------------------------------
 
     items = items_products.copy()
 
 
-    # Make sure order purchase timestamp is datetime
     if "order_purchase_timestamp" in items.columns:
 
-        items["order_purchase_timestamp"] = pd.to_datetime(
-            items["order_purchase_timestamp"]
+        items[
+            "order_purchase_timestamp"
+        ] = pd.to_datetime(
+            items[
+                "order_purchase_timestamp"
+            ]
         )
 
         items["month"] = (
-            items["order_purchase_timestamp"]
+            items[
+                "order_purchase_timestamp"
+            ]
             .dt.to_period("M")
             .dt.to_timestamp()
         )
 
 
     # --------------------------------------------------------
-    # Identify category column
+    # CATEGORY COLUMN
     # --------------------------------------------------------
 
     category_column = None
 
-    possible_category_columns = [
+
+    possible_columns = [
         "product_category_name_english",
         "product_category_name",
         "category",
         "product_category"
     ]
 
-    for column in possible_category_columns:
+
+    for column in possible_columns:
 
         if column in items.columns:
 
@@ -294,27 +749,30 @@ def investigate_revenue(selected_month):
             break
 
 
-    # --------------------------------------------------------
-    # Category revenue comparison
-    # --------------------------------------------------------
-
     category_changes = pd.DataFrame()
 
 
-    if category_column is not None and "price" in items.columns:
+    if (
+        category_column
+        and "price" in items.columns
+        and "month" in items.columns
+    ):
 
         current_category = (
             items[
-                items["month"] == selected_month
+                items["month"]
+                == selected_month
             ]
             .groupby(category_column)["price"]
             .sum()
             .reset_index()
         )
+
 
         previous_category = (
             items[
-                items["month"] == previous_month
+                items["month"]
+                == previous_month
             ]
             .groupby(category_column)["price"]
             .sum()
@@ -322,16 +780,25 @@ def investigate_revenue(selected_month):
         )
 
 
-        current_category = current_category.rename(
-            columns={
-                "price": "current_revenue"
-            }
+        current_category = (
+            current_category
+            .rename(
+                columns={
+                    "price":
+                    "current_revenue"
+                }
+            )
         )
 
-        previous_category = previous_category.rename(
-            columns={
-                "price": "previous_revenue"
-            }
+
+        previous_category = (
+            previous_category
+            .rename(
+                columns={
+                    "price":
+                    "previous_revenue"
+                }
+            )
         )
 
 
@@ -344,154 +811,136 @@ def investigate_revenue(selected_month):
 
 
         category_changes[
-            ["previous_revenue", "current_revenue"]
+            [
+                "previous_revenue",
+                "current_revenue"
+            ]
         ] = category_changes[
-            ["previous_revenue", "current_revenue"]
+            [
+                "previous_revenue",
+                "current_revenue"
+            ]
         ].fillna(0)
 
 
         category_changes["change"] = (
-            category_changes["current_revenue"]
+            category_changes[
+                "current_revenue"
+            ]
             -
-            category_changes["previous_revenue"]
+            category_changes[
+                "previous_revenue"
+            ]
         )
 
 
         category_changes["change_pct"] = (
             category_changes["change"]
             /
-            category_changes["previous_revenue"].replace(
-                0,
-                pd.NA
-            )
+            category_changes[
+                "previous_revenue"
+            ].replace(0, pd.NA)
         ) * 100
 
 
-        # Only declining categories
-        category_changes = category_changes[
-            category_changes["change"] < 0
-        ].copy()
-
-
-        # Sort by largest absolute revenue decline
-        category_changes["absolute_decline"] = (
-            category_changes["change"].abs()
+        category_changes = (
+            category_changes[
+                category_changes["change"] < 0
+            ]
+            .copy()
         )
 
 
-        category_changes = category_changes.sort_values(
-            "absolute_decline",
-            ascending=False
+        category_changes[
+            "absolute_decline"
+        ] = category_changes[
+            "change"
+        ].abs()
+
+
+        category_changes = (
+            category_changes
+            .sort_values(
+                "absolute_decline",
+                ascending=False
+            )
+            .head(5)
         )
 
 
-        category_changes = category_changes.head(10)
-
-
-    # --------------------------------------------------------
-    # Build evidence
-    # --------------------------------------------------------
-
-    evidence = {
-
-        "investigated_month":
-            selected_month.strftime("%B %Y"),
-
-        "previous_month":
-            previous_month.strftime("%B %Y"),
-
-        "current_revenue":
-            round(float(current_revenue), 2),
-
-        "previous_revenue":
-            round(float(previous_revenue), 2),
-
-        "revenue_change":
-            round(float(revenue_change), 2),
-
-        "revenue_change_pct":
-            round(float(revenue_change_pct), 2),
-
-        "top_category_drivers":
-            []
+    return {
+        "selected_month": selected_month,
+        "previous_month": previous_month,
+        "current_revenue": current_revenue,
+        "previous_revenue": previous_revenue,
+        "revenue_change": revenue_change,
+        "revenue_change_pct": revenue_change_pct,
+        "category_changes": category_changes,
+        "category_column": category_column
     }
 
 
-    if not category_changes.empty:
-
-        for _, row in category_changes.iterrows():
-
-            evidence["top_category_drivers"].append(
-                {
-                    "category":
-                        str(row[category_column]),
-
-                    "previous_revenue":
-                        round(
-                            float(row["previous_revenue"]),
-                            2
-                        ),
-
-                    "current_revenue":
-                        round(
-                            float(row["current_revenue"]),
-                            2
-                        ),
-
-                    "change":
-                        round(
-                            float(row["change"]),
-                            2
-                        ),
-
-                    "change_pct":
-                        round(
-                            float(row["change_pct"]),
-                            2
-                        )
-                    if pd.notna(row["change_pct"])
-                    else None
-                }
-            )
-
-
-    return evidence, category_changes
-
-
 # ============================================================
-# INVESTIGATE BUTTON
+# RUN INVESTIGATION
 # ============================================================
 
-if st.button(
-    "🔎 Investigate This",
-    type="primary",
-    use_container_width=True
-):
+if investigate:
 
-    result = investigate_revenue(selected_month)
+    result = investigate_revenue(
+        selected_month
+    )
 
 
     if result is None:
 
         st.error(
-            "There is not enough data to compare this month "
-            "with the previous month."
+            "Not enough data to investigate this month."
         )
 
         st.stop()
 
 
-    evidence, category_changes = result
-
-
     # ========================================================
-    # INVESTIGATION SUMMARY
+    # INVESTIGATION HEADER
     # ========================================================
 
     st.divider()
 
-    st.header(
-        f"Investigation: {evidence['investigated_month']}"
+
+    st.markdown(
+        f"""
+        <div class="investigation-card">
+
+            <div style="
+                color:#6b7280;
+                font-size:13px;
+                font-weight:600;
+                text-transform:uppercase;
+            ">
+                Revenue Investigation
+            </div>
+
+            <div style="
+                font-size:28px;
+                font-weight:800;
+                color:#171b2e;
+                margin-top:5px;
+            ">
+                {result["selected_month"].strftime("%B %Y")}
+            </div>
+
+            <div style="
+                color:#6b7280;
+                font-size:14px;
+                margin-top:4px;
+            ">
+                Compared with
+                {result["previous_month"].strftime("%B %Y")}
+            </div>
+
+        </div>
+        """,
+        unsafe_allow_html=True
     )
 
 
@@ -499,93 +948,183 @@ if st.button(
     # INVESTIGATION KPIs
     # ========================================================
 
-    col1, col2, col3 = st.columns(3)
+    c1, c2, c3 = st.columns(3)
 
 
-    with col1:
+    with c1:
 
         st.metric(
             "Current Revenue",
-            f"₹{evidence['current_revenue']:,.2f}"
+            f"₹{result['current_revenue']:,.0f}"
         )
 
 
-    with col2:
+    with c2:
 
         st.metric(
             "Previous Revenue",
-            f"₹{evidence['previous_revenue']:,.2f}"
+            f"₹{result['previous_revenue']:,.0f}"
         )
 
 
-    with col3:
+    with c3:
 
         st.metric(
             "Revenue Change",
-            f"{evidence['revenue_change_pct']:.2f}%"
+            f"{result['revenue_change_pct']:.2f}%"
         )
 
 
     # ========================================================
-    # TOP REVENUE DECLINE DRIVERS
+    # DRIVER SECTION
     # ========================================================
 
-    st.subheader(
-        "📉 Top Revenue Decline Drivers"
+    st.markdown(
+        """
+        <div class="section-title">
+            📉 Top Revenue Decline Drivers
+        </div>
+
+        <div class="section-subtitle">
+            Product categories with the largest negative
+            revenue contribution.
+        </div>
+        """,
+        unsafe_allow_html=True
     )
 
 
-    if not category_changes.empty:
+    category_changes = result[
+        "category_changes"
+    ]
 
-        display_columns = [
-            category_changes.columns[
-                category_changes.columns.isin(
-                    [
-                        "product_category_name_english",
-                        "product_category_name",
-                        "category",
-                        "product_category"
-                    ]
-                )
-            ][0],
-            "previous_revenue",
-            "current_revenue",
-            "change",
-            "change_pct"
-        ]
+    category_column = result[
+        "category_column"
+    ]
 
 
-        display_df = category_changes[
-            display_columns
-        ].copy()
+    if (
+        not category_changes.empty
+        and category_column
+    ):
 
-
-        # Rename category column
-        category_name = display_columns[0]
-
-        display_df = display_df.rename(
-            columns={
-                category_name: "Product Category",
-                "previous_revenue": "Previous Revenue",
-                "current_revenue": "Current Revenue",
-                "change": "Revenue Change",
-                "change_pct": "Change %"
-            }
+        driver_chart = (
+            category_changes
+            .copy()
+            .sort_values(
+                "change",
+                ascending=True
+            )
         )
 
 
-        st.dataframe(
-            display_df,
-            use_container_width=True,
-            hide_index=True
+        driver_chart[
+            "category_display"
+        ] = driver_chart[
+            category_column
+        ].astype(str)
+
+
+        fig_driver = px.bar(
+            driver_chart,
+            x="change",
+            y="category_display",
+            orientation="h",
+            labels={
+                "change":
+                    "Revenue Change",
+                "category_display":
+                    "Product Category"
+            },
+            text="change"
         )
+
+
+        fig_driver.update_traces(
+            texttemplate="₹%{x:,.0f}",
+            textposition="outside",
+            hovertemplate=
+                "<b>%{y}</b><br>"
+                "Revenue Change: ₹%{x:,.0f}"
+                "<extra></extra>"
+        )
+
+
+        fig_driver.update_layout(
+
+            height=330,
+
+            margin=dict(
+                l=10,
+                r=80,
+                t=10,
+                b=10
+            ),
+
+            paper_bgcolor="rgba(0,0,0,0)",
+
+            plot_bgcolor="rgba(0,0,0,0)",
+
+            xaxis=dict(
+                title=None,
+                tickprefix="₹",
+                separatethousands=True,
+                gridcolor="#e5e7eb"
+            ),
+
+            yaxis=dict(
+                title=None
+            ),
+
+            font=dict(
+                family="Arial"
+            )
+        )
+
+
+        st.plotly_chart(
+            fig_driver,
+            use_container_width=True
+        )
+
+
+        # Detailed table
+        with st.expander(
+            "View detailed driver data"
+        ):
+
+            display_df = category_changes[
+                [
+                    category_column,
+                    "previous_revenue",
+                    "current_revenue",
+                    "change",
+                    "change_pct"
+                ]
+            ].copy()
+
+
+            display_df.columns = [
+                "Product Category",
+                "Previous Revenue",
+                "Current Revenue",
+                "Revenue Change",
+                "Change %"
+            ]
+
+
+            st.dataframe(
+                display_df,
+                use_container_width=True,
+                hide_index=True
+            )
 
 
     else:
 
         st.info(
-            "No category-level revenue decline drivers "
-            "were identified."
+            "No category-level revenue decline "
+            "drivers were identified."
         )
 
 
@@ -593,108 +1132,122 @@ if st.button(
     # GEMINI ANALYSIS
     # ========================================================
 
-    st.subheader(
-        "🤖 AI Revenue Detective Analysis"
+    st.markdown(
+        """
+        <div class="ai-header">
+
+            <div class="ai-title">
+                🤖 AI Business Analysis
+            </div>
+
+            <div class="ai-subtitle">
+                Gemini explanation based only on validated
+                analytical evidence
+            </div>
+
+        </div>
+        """,
+        unsafe_allow_html=True
     )
 
 
     # --------------------------------------------------------
-    # Create evidence text
+    # Build evidence
     # --------------------------------------------------------
 
     evidence_text = f"""
+
 Investigated Month:
-{evidence['investigated_month']}
+{result['selected_month'].strftime('%B %Y')}
 
 Previous Month:
-{evidence['previous_month']}
+{result['previous_month'].strftime('%B %Y')}
 
 Current Revenue:
-₹{evidence['current_revenue']:,.2f}
+₹{result['current_revenue']:,.2f}
 
 Previous Revenue:
-₹{evidence['previous_revenue']:,.2f}
+₹{result['previous_revenue']:,.2f}
 
 Revenue Change:
-₹{evidence['revenue_change']:,.2f}
+₹{result['revenue_change']:,.2f}
 
 Revenue Change Percentage:
-{evidence['revenue_change_pct']:.2f}%
+{result['revenue_change_pct']:.2f}%
 
-Top Revenue Decline Drivers:
+Top Category Decline Drivers:
 """
 
 
-    for driver in evidence["top_category_drivers"]:
+    for _, row in category_changes.iterrows():
 
         evidence_text += f"""
 
 Category:
-{driver['category']}
+{row[category_column]}
 
 Previous Revenue:
-₹{driver['previous_revenue']:,.2f}
+₹{row['previous_revenue']:,.2f}
 
 Current Revenue:
-₹{driver['current_revenue']:,.2f}
+₹{row['current_revenue']:,.2f}
 
 Revenue Change:
-₹{driver['change']:,.2f}
+₹{row['change']:,.2f}
 
 Change Percentage:
-{driver['change_pct']}%
+{row['change_pct']:.2f}%
 """
 
 
     # --------------------------------------------------------
-    # Gemini prompt
+    # Prompt
     # --------------------------------------------------------
 
     prompt = f"""
-You are a business intelligence analyst.
+You are a Business Intelligence Analyst.
 
-Analyze the following validated analytical evidence.
+Analyze the validated evidence below.
 
 IMPORTANT RULES:
 
-1. Use ONLY the evidence provided below.
-2. Do not invent numbers.
-3. Do not claim that a possible explanation is a proven cause.
-4. Clearly distinguish measured facts from possible explanations.
-5. If the evidence does not establish the true cause, say so.
-6. Recommend what the business should investigate next.
-7. Keep the explanation concise and business-friendly.
+- Use ONLY the provided evidence.
+- Do not invent numbers.
+- Do not invent facts.
+- Do not claim correlation proves causation.
+- Clearly separate facts from hypotheses.
+- If the evidence does not establish the actual cause,
+  explicitly say that.
+- Recommend what should be investigated next.
 
-Structure your response as:
+Use exactly this structure:
 
 ## What Happened
 
-Explain the revenue change using the provided numbers.
+Explain the measured revenue change.
 
 ## Top Drivers
 
-Identify the largest category-level contributors to the decline.
+Explain the largest category-level contributors.
 
-## What the Evidence Shows
+## Evidence
 
-State only conclusions directly supported by the data.
+List the key facts supported directly by the data.
 
 ## Possible Explanations
 
-Give reasonable hypotheses, clearly labeling them as hypotheses rather than confirmed causes.
+Provide reasonable hypotheses, clearly labeling them
+as possible explanations rather than confirmed causes.
 
 ## Recommended Investigation
 
-Suggest the next dimensions or data points the business should investigate.
+Suggest the next business dimensions or data points
+that should be investigated.
 
 ## Confidence
 
-State whether the evidence provides:
-- High confidence
-- Moderate confidence
-- Low confidence
-
-Then briefly explain why.
+State High, Moderate, or Low confidence and explain
+why based on the available evidence.
 
 VALIDATED EVIDENCE:
 
@@ -703,13 +1256,13 @@ VALIDATED EVIDENCE:
 
 
     # --------------------------------------------------------
-    # Generate Gemini response
+    # Generate response
     # --------------------------------------------------------
 
     try:
 
         with st.spinner(
-            "🤖 Gemini is analyzing the validated evidence..."
+            "🤖 Analyzing validated evidence..."
         ):
 
             response = client.models.generate_content(
@@ -718,17 +1271,19 @@ VALIDATED EVIDENCE:
             )
 
 
-        st.markdown(response.text)
+        st.markdown(
+            response.text
+        )
 
 
     except Exception as e:
 
         st.error(
-            "Gemini analysis could not be generated."
+            "The AI analysis could not be generated."
         )
 
         st.caption(
-            f"Error: {str(e)}"
+            f"Technical error: {str(e)}"
         )
 
 
@@ -736,9 +1291,15 @@ VALIDATED EVIDENCE:
 # FOOTER
 # ============================================================
 
-st.divider()
+st.markdown(
+    """
+    <div class="footer">
 
-st.caption(
-    "AI Revenue Detective • Analytics determines the facts. "
-    "AI explains the facts."
+        🔎 AI Revenue Detective
+        &nbsp;•&nbsp;
+        Analytics determines the facts. AI explains the facts.
+
+    </div>
+    """,
+    unsafe_allow_html=True
 )
