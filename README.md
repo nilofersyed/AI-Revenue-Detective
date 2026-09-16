@@ -1,94 +1,74 @@
-
 # 🔎 AI Revenue Detective
 
-### Automated Revenue Root-Cause & Business Intelligence System
+### Automated Revenue Root-Cause Analysis & Business Intelligence System
 
-> **Business Question:** Revenue changed. Why?
+<p align="center">
+  <b>From "Revenue changed" → "Why did it change?"</b>
+</p>
 
-AI Revenue Detective is an interactive analytics application that detects revenue changes, identifies the major drivers behind those changes, and uses Generative AI to explain validated business evidence.
+<p align="center">
+  <a href="https://ai-revenue-detective-pdkjd9zngwu5pxhjh7eryk.streamlit.app/">
+    <img src="https://img.shields.io/badge/🚀%20Live%20Demo-Streamlit-red?style=for-the-badge&logo=streamlit" alt="Live Demo">
+  </a>
+  <a href="https://github.com/nilofersyed/AI-Revenue-Detective">
+    <img src="https://img.shields.io/badge/Source%20Code-GitHub-black?style=for-the-badge&logo=github" alt="GitHub">
+  </a>
+</p>
 
-## 🚀 Project Workflow
+---
 
-Raw E-Commerce Data  
-↓  
-Data Preparation  
-↓  
-Revenue Analysis  
-↓  
-Anomaly Detection  
-↓  
-Root-Cause Analysis  
-↓  
-Validated Evidence  
-↓  
-Gemini AI Explanation  
-↓  
-Streamlit Application
+## 📌 Overview
 
-## 📊 What the System Does
+**AI Revenue Detective** is an analytics and business intelligence application that investigates changes in business revenue and identifies the major dimensions contributing to those changes.
 
-- Calculates monthly revenue
-- Detects month-over-month revenue changes
-- Identifies categories driving revenue declines
-- Compares current and previous month performance
-- Provides evidence-based investigation results
-- Uses Gemini to generate business-friendly explanations
-- Provides recommended areas for further investigation
+Traditional dashboards are effective at showing **what happened**, but understanding **why it happened** often requires analysts to manually explore multiple datasets and business dimensions.
 
-## 🤖 AI Design
+This project combines **Python analytics, root-cause analysis, Generative AI, and Streamlit** to create an interactive revenue investigation workflow.
 
-A key design principle is:
+The application allows users to select a month, investigate its revenue performance, identify the largest contributing categories, and generate an AI-assisted business explanation based on validated analytical evidence.
 
-**Analytics determines the facts.  
-AI explains the validated evidence.**
+---
 
-Gemini does not independently determine the root cause from raw data. The Python analytics layer calculates the metrics and drivers first, and only the validated evidence is passed to the AI.
+## 🎯 Business Problem
 
-## 🛠️ Technology Stack
+When revenue changes, business teams need answers beyond a simple KPI.
 
-- Python
-- Pandas
-- Streamlit
-- Google Gemini API
-- Olist E-Commerce Dataset
-- Data Analysis
-- Root-Cause Analysis
-- Generative AI
+Typical questions include:
 
-## 📈 Example Investigation
+- What caused the revenue change?
+- Which product categories contributed most?
+- Which regions or sellers were affected?
+- How large was the change?
+- What evidence supports the finding?
+- What should the business investigate next?
 
-For August 2018, the system identified a **4.56% month-over-month revenue decline**.
+### Core Business Question
 
-The investigation highlighted categories including:
+> **Revenue changed. Why?**
 
-- watches_gifts
-- cool_stuff
-- garden_tools
-- office_furniture
-- fixed_telephony
+AI Revenue Detective is designed to make this investigation faster and more structured.
 
-The AI layer then converted these validated findings into a business investigation report while separating measured facts from possible explanations.
+---
 
-## 🎯 Business Value
+## 💡 Solution
 
-The system helps analysts move from:
+The application follows an evidence-first analytical workflow:
 
-**"Revenue changed."**
-
-to:
-
-**"Which dimensions contributed to the change, what does the evidence show, and what should we investigate next?"**
-
-## ⚠️ Data & AI Safety
-
-API keys are not stored in the repository.
-
-The Gemini API key should be supplied through an environment variable:
-
-`GEMINI_API_KEY`
-
-## 👩‍💻 Author
-
-Syed Nilofer
-
-Computer Science Engineering | Data Analytics | Business Intelligence | Generative AI
+```text
+Raw Business Data
+        ↓
+Data Preparation
+        ↓
+Revenue & KPI Analysis
+        ↓
+Month-over-Month Comparison
+        ↓
+Root-Cause Analysis
+        ↓
+Validated Evidence
+        ↓
+Generative AI
+        ↓
+Business Explanation
+        ↓
+Interactive Streamlit App
