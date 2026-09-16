@@ -2,21 +2,17 @@
 
 ### Automated Revenue Root-Cause & Business Intelligence System
 
-**Revenue changed. Why?**
+> **Revenue changed. Why?**
 
-AI Revenue Detective is an AI-powered business intelligence application designed to investigate changes in revenue and identify the underlying business drivers.
+AI Revenue Detective is an interactive business intelligence application that automatically detects revenue changes, identifies the major contributing factors, validates analytical evidence, and uses Generative AI to generate business-oriented explanations.
 
-The system combines **Python-based data analysis, root-cause investigation, evidence validation, Generative AI, and Streamlit** to transform raw e-commerce data into structured, explainable business insights.
-
-Rather than asking an LLM to interpret raw data directly, the system follows an **evidence-first architecture**:
-
-> **Analytics determines the facts. Generative AI explains the facts.**
+The project combines **Python, Pandas, data analytics, root-cause analysis, Gemini API, Plotly, and Streamlit** to create an end-to-end revenue investigation system.
 
 ---
 
-## 🌐 Live Application
+## 🚀 Live Demo
 
-### 🚀 [Launch AI Revenue Detective](https://ai-revenue-detective-pdkjd9znqwu5pxhjh7eryk.streamlit.app/)
+### [🔎 Launch AI Revenue Detective](https://ai-revenue-detective-pdkjd9znqwu5pxhjh7eryk.streamlit.app/)
 
 ## 💻 Source Code
 
@@ -26,86 +22,93 @@ Rather than asking an LLM to interpret raw data directly, the system follows an 
 
 # 📌 Project Overview
 
-Revenue dashboards typically answer:
+Revenue dashboards usually answer:
 
-> **"What happened?"**
+> **What happened?**
 
-However, business teams often need to answer:
+But business teams also need to understand:
 
-> **"Why did it happen?"**
+> **Why did it happen?**
 
-AI Revenue Detective addresses this problem by automatically investigating revenue changes across multiple business dimensions.
+AI Revenue Detective was designed to automate this investigation.
 
-The application detects revenue changes, identifies the largest contributing factors, validates the analytical evidence, and then uses Gemini to generate a concise business explanation.
+The application analyzes historical e-commerce revenue, detects month-over-month changes, investigates the underlying drivers across multiple business dimensions, validates the findings, and uses Generative AI to explain the results.
+
+### Core Principle
+
+> **Analytics determines the facts. AI explains the facts.**
+
+The LLM does not independently analyze the raw dataset and make numerical assumptions.
+
+Python performs the quantitative analysis first. Only validated analytical evidence is provided to Gemini for explanation.
+
+---
+
+# 📸 Dashboard Preview
+
+## 1. Revenue Intelligence Dashboard
+
+The main dashboard provides a high-level view of revenue performance, monthly movement, and complete reporting periods.
+
+![AI Revenue Detective Dashboard](screenshots/dashboard-overview.png)
+
+---
+
+## 2. Revenue Investigation
+
+Users can select a reporting month and investigate its revenue movement compared with the previous period.
+
+The application provides current revenue, previous revenue, percentage change, and the major contributing drivers.
+
+![Revenue Investigation](screenshots/revenue-investigation.png)
+
+---
+
+## 3. AI Business Analysis
+
+After the quantitative investigation, validated analytical evidence is passed to Gemini to generate a business-oriented explanation.
+
+![AI Business Analysis](screenshots/ai-business-analysis.png)
 
 ---
 
 # 🎯 Business Problem
 
-Unexpected revenue changes can be difficult to investigate manually when the underlying data contains thousands of transactions across multiple products, sellers, customers, and locations.
+Unexpected revenue changes can require significant manual investigation.
 
-A business analyst may need to investigate:
+A business analyst may need to determine:
 
 - When did revenue change?
-- How large was the change?
+- How significant was the change?
 - Which product categories contributed?
 - Which sellers were affected?
-- Which states contributed to the movement?
-- What are the major revenue drivers?
+- Which states contributed?
+- What were the largest revenue drivers?
 - How can the findings be communicated clearly?
 
-This project automates that analytical workflow.
+AI Revenue Detective brings these analytical steps into a single workflow.
 
 ---
 
 # 💡 Solution
 
-The system follows a structured pipeline:
+The system follows a structured **evidence-first analytical pipeline**:
 
-```text
-                 ┌─────────────────────┐
-                 │  Olist E-Commerce   │
-                 │       Dataset       │
-                 └──────────┬──────────┘
-                            │
-                            ▼
-                 ┌─────────────────────┐
-                 │  Data Preparation   │
-                 │   Python / Pandas   │
-                 └──────────┬──────────┘
-                            │
-                            ▼
-                 ┌─────────────────────┐
-                 │ Revenue & KPI       │
-                 │     Analysis        │
-                 └──────────┬──────────┘
-                            │
-                            ▼
-                 ┌─────────────────────┐
-                 │ Change Detection    │
-                 │    Month-over-      │
-                 │    Month Analysis   │
-                 └──────────┬──────────┘
-                            │
-                            ▼
-                 ┌─────────────────────┐
-                 │ Root-Cause Analysis │
-                 │ Category / State /  │
-                 │       Seller        │
-                 └──────────┬──────────┘
-                            │
-                            ▼
-                 ┌─────────────────────┐
-                 │ Evidence Validation │
-                 └──────────┬──────────┘
-                            │
-                            ▼
-                 ┌─────────────────────┐
-                 │     Gemini AI       │
-                 │ Business Explanation│
-                 └──────────┬──────────┘
-                            │
-                            ▼
-                 ┌─────────────────────┐
-                 │    Streamlit App    │
-                 └─────────────────────┘
+```mermaid
+flowchart TD
+    A["Olist E-Commerce Dataset"]
+    B["Data Preparation<br/>Python / Pandas"]
+    C["Revenue & KPI Analysis"]
+    D["Change Detection<br/>Month-over-Month Analysis"]
+    E["Root-Cause Analysis<br/>Category / State / Seller"]
+    F["Evidence Validation"]
+    G["Gemini AI<br/>Business Explanation"]
+    H["Interactive Streamlit Application"]
+
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    F --> G
+    G --> H
